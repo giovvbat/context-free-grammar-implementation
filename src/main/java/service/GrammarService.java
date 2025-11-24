@@ -109,7 +109,7 @@ public class GrammarService {
         }
     }
 
-    // verifies if grammar generates empty words
+    // verifies if grammar generates empty word
     private static boolean isEmptyWorded(Grammar grammar) {
         Queue<List<Variable>> reachable = new LinkedList<>();
         reachable.offer(List.of(grammar.getStart()));
@@ -155,6 +155,40 @@ public class GrammarService {
                         reachable.add(added);
                     }
                 }
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean hasInvalidEmptyRules(Grammar grammar) {
+        for (Variable variable : grammar.getVariables()) {
+            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                if (!(variable.equals(grammar.getStart())) && rule.size() == 1 && rule.getFirst() instanceof AlphabetSymbol && rule.getFirst().getValue().isEmpty()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean hasUnitaryRules(Grammar grammar) {
+        for (Variable variable : grammar.getVariables()) {
+            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                if (rule.size() == 1 && rule.getFirst() instanceof Variable) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    public static boolean hasUnreachableVariables(Grammar grammar) {
+        for (Variable variable : grammar.getVariables()) {
+            if (!computeClosure(grammar, grammar.getStart()).contains(variable)) {
+                return true;
             }
         }
 

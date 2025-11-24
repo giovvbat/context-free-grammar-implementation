@@ -54,8 +54,16 @@ public class Grammar {
         verifyRules(variables, alphabet, rules);
     }
 
-    // verifies if variables and alphabet symbols have all different representations
+    // verifies if all variables and alphabet symbols have (different) representations
     private void verifySymbols(Set<Variable> variables, Set<AlphabetSymbol> alphabet) {
+        if (variables == null || variables.isEmpty()) {
+            throw new IllegalArgumentException("variables set cannot be empty!");
+        }
+
+        if (alphabet == null || alphabet.isEmpty()) {
+            throw new IllegalArgumentException("alphabet set cannot be empty!");
+        }
+
         for (Variable variable : variables) {
             for (AlphabetSymbol symbol : alphabet) {
                 if (variable.getValue().equals(symbol.getValue())) {
@@ -65,10 +73,14 @@ public class Grammar {
         }
     }
 
-    // verifies if starting variable belongs to grammar variables' set
+    // verifies if starting variable exists and belongs to grammar variables' set
     private void verifyStart(Set<Variable> variables, Variable startingVariable) {
+        if (startingVariable == null) {
+            throw new IllegalArgumentException("starting variable cannot be null!");
+        }
+
         if (!variables.contains(startingVariable)) {
-            throw new IllegalArgumentException("variable " + startingVariable + " does not exist in grammar!");
+            throw new IllegalArgumentException("starting variable " + startingVariable + " does not exist in grammar!");
         }
     }
 
@@ -82,7 +94,7 @@ public class Grammar {
         }
 
         if (!rules.getValue().containsKey(start)) {
-            throw new IllegalArgumentException("production rules must contain starting variable!");
+            throw new IllegalArgumentException("starting variable must present at least one production rule!");
         }
 
         for (Map.Entry<Variable, Set<List<GrammarSymbol>>> entry : rules.getValue().entrySet()) {
@@ -95,23 +107,11 @@ public class Grammar {
                     throw new IllegalArgumentException("production rule " + entry.getKey() + " cannot be empty!");
                 }
 
-                if (alreadyUsedVariables.contains(new AlphabetSymbol("")) && symbols.size() != 1) {
-                    throw new IllegalArgumentException("lambda production rules cannot contain more than one symbol!");
-                }
-
                 for (GrammarSymbol symbol : symbols) {
                     if (symbol instanceof AlphabetSymbol) {
                         foundAlphabetSymbol = true;
-
-                        if (!alphabet.contains(symbol)) {
-                            throw new IllegalArgumentException("alphabet symbol " + symbol + " does not exist in grammar!");
-                        }
                     } else if (symbol instanceof Variable) {
                         alreadyUsedVariables.add(symbol);
-
-                        if (!variables.contains(symbol)) {
-                            throw new IllegalArgumentException("variable " + symbol + " does not exist in grammar!");
-                        }
                     }
                 }
             }
