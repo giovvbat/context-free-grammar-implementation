@@ -2,8 +2,8 @@ package service;
 
 import model.Grammar;
 
-public class NormalisationService {
-    public static void normatizeChomsky(Grammar grammar) {
+public class NormalizationService {
+    public static void normalizeChomsky(Grammar grammar) {
         GrammarService.removeUnitaryRules(grammar);
         GrammarService.removeUnreachableVariables(grammar);
         GrammarService.removeEmptyRules(grammar);

@@ -1,5 +1,5 @@
 import model.*;
-import service.NormatizationService;
+import service.NormalizationService;
 
 import java.util.*;
 
@@ -7,7 +7,7 @@ public class Main {
     public static void main(String[] args) {
         Grammar grammar = setGrammarUp();
         System.out.println(grammar);
-        NormatizationService.normatizeChomsky(grammar);
+        NormalizationService.normalizeChomsky(grammar);
         System.out.println(grammar);
     }
 
