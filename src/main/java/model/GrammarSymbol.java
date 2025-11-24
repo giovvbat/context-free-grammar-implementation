@@ -1,15 +1,20 @@
-package grammar;
+package model;
 
 import lombok.*;
 
 @Getter
+@Setter
 @AllArgsConstructor
 @EqualsAndHashCode
 public abstract class GrammarSymbol {
-    private final String grammarSymbol;
+    private String value;
 
     @Override
     public String toString() {
-        return grammarSymbol;
+        if (value.isEmpty()) {
+            return "*";
+        }
+
+        return value;
     }
 }
