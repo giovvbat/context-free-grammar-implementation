@@ -4,10 +4,17 @@ import lombok.*;
 
 @Getter
 @Setter
-@AllArgsConstructor
 @EqualsAndHashCode
 public abstract class GrammarSymbol {
     private String value;
+
+    public GrammarSymbol(String value) {
+        if (value.equals("*")) {
+            throw new IllegalArgumentException("grammar symbol values cannot be stored as *");
+        }
+
+        this.value = value;
+    }
 
     @Override
     public String toString() {

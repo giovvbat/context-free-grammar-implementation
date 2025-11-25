@@ -97,6 +97,12 @@ public class GrammarLoader {
 
         reader.close();
 
+        for (Variable variable : variables) {
+            if (!rules.containsKey(variable)) {
+                rules.put(variable, new HashSet<>());
+            }
+        }
+
         return new Grammar(variables, alphabet, start, new Rules(rules));
     }
 

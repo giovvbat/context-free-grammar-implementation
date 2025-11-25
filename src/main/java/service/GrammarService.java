@@ -9,21 +9,10 @@ import model.Variable;
 import java.util.*;
 
 public class GrammarService {
-    public static void removeUnreachableVariables(Grammar grammar) {
-        Set<Variable> reachable = computeClosure(grammar, grammar.getStart());
-        Queue<Variable> removed = new LinkedList<>();
-
-        for (Variable variable : grammar.getVariables()) {
-            if (!reachable.contains(variable)) {
-                removed.add(variable);
-            }
-        }
-
-        while (!removed.isEmpty()) {
-            Variable variable = removed.poll();
-            grammar.getVariables().remove(variable);
-            grammar.getRules().getValue().remove(variable);
-        }
+    public static void removeUselessVariables(Grammar grammar) {
+        removeUnreachableVariables(grammar);
+        removeNonGenerativeVariables(grammar);
+        removeEmptyVariables(grammar);
     }
 
     public static void removeUnitaryRules(Grammar grammar) {
@@ -47,29 +36,23 @@ public class GrammarService {
         }
     }
 
-    public static void removeEmptyRules(Grammar grammar) {
+    public static void removeLambdaRules(Grammar grammar) {
         Set<Variable> empty = new HashSet<>();
-        Set<List<GrammarSymbol>> removed = new HashSet<>();
         boolean isEmptyWorded = isEmptyWorded(grammar);
 
         for (Variable variable : grammar.getVariables()) {
             for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
                 if (rule.size() == 1 && rule.getFirst() instanceof AlphabetSymbol && rule.getFirst().getValue().isEmpty()) {
                     empty.add(variable);
-                    removed.add(rule);
+                    grammar.getRules().getRulesByLeft(variable).remove(rule);
+                    break;
                 }
             }
-
-            for (List<GrammarSymbol> rule : removed) {
-                grammar.getRules().getRulesByLeft(variable).remove(rule);
-            }
-
-            removed.clear();
         }
 
         for (Variable variable : empty) {
             for (Variable current : grammar.getVariables()) {
-                adaptEmptyRules(grammar, grammar.getRules().getRulesByLeft(current), variable);
+                suitLambdaRules(grammar.getRules().getRulesByLeft(current), variable);
             }
         }
 
@@ -81,87 +64,85 @@ public class GrammarService {
         }
     }
 
-    private static void adaptEmptyRules(Grammar grammar, Set<List<GrammarSymbol>> rules, Variable variable) {
-        if (grammar.getRules().getRulesByLeft(variable).isEmpty()) {
-            for (List<GrammarSymbol> rule : rules) {
-                rule.removeIf(symbol -> symbol instanceof Variable && symbol.getValue().equals(variable.getValue()));
-            }
+    public static void removeEmptyVariables(Grammar grammar) {
+        Set<Variable> removed = new HashSet<>();
+        Set<List<GrammarSymbol>> rules = new HashSet<>();
 
-            rules.removeIf(List::isEmpty);
-        } else {
-            Set<List<GrammarSymbol>> added = new HashSet<>();
+        while (hasEmptyVariables(grammar)) {
+            removed.clear();
 
-            for (List<GrammarSymbol> rule : rules) {
-                for (GrammarSymbol symbol : rule) {
-                    if (symbol.getValue().equals(variable.getValue())) {
-                        List<GrammarSymbol> newRule = new ArrayList<>(rule);
-                        newRule.remove(symbol);
-                        added.add(newRule);
-                    }
+            for (Variable variable : grammar.getVariables()) {
+                if (grammar.getRules().getRulesByLeft(variable).isEmpty()) {
+                    removed.add(variable);
+                    grammar.getRules().getValue().remove(variable);
                 }
             }
 
-            for (List<GrammarSymbol> rule : added) {
-                if (!rule.isEmpty()) {
-                    rules.add(rule);
-                }
-            }
-        }
-    }
-
-    // verifies if grammar generates empty word
-    private static boolean isEmptyWorded(Grammar grammar) {
-        Queue<List<Variable>> reachable = new LinkedList<>();
-        reachable.offer(List.of(grammar.getStart()));
-
-        while (!reachable.isEmpty()) {
-            boolean isRuleSetEmpty = true;
-            List<Variable> variables = reachable.poll();
-
-            for (Variable variable : variables) {
-                boolean isVariableEmpty = false;
-
-                for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
-                    if (rule.size() == 1 && rule.getFirst() instanceof AlphabetSymbol && rule.getFirst().getValue().isEmpty()) {
-                        isVariableEmpty = true;
-                    }
-                }
-
-                if (!isVariableEmpty) {
-                    isRuleSetEmpty = false;
-                    break;
-                }
+            for (Variable variable : removed) {
+                grammar.getVariables().remove(variable);
             }
 
-            if (isRuleSetEmpty) {
-                return true;
-            }
+            for (Variable empty : removed) {
+                for (Variable variable : grammar.getVariables()) {
+                    rules.clear();
 
-            for (Variable v : variables) {
-                for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(v)) {
-                    boolean hasAlphabetSymbol = false;
-                    List<Variable> added = new ArrayList<>();
-
-                    for (GrammarSymbol symbol : rule) {
-                        if (symbol instanceof AlphabetSymbol) {
-                            hasAlphabetSymbol = true;
-                            break;
-                        } else {
-                            added.add((Variable) symbol);
+                    for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                        for (GrammarSymbol symbol : rule) {
+                            if (symbol.equals(empty)) {
+                                rules.add(rule);
+                            }
                         }
                     }
 
-                    if (!hasAlphabetSymbol) {
-                        reachable.add(added);
+                    for (List<GrammarSymbol> rule : rules) {
+                        grammar.getRules().getRulesByLeft(variable).remove(rule);
                     }
                 }
             }
         }
 
-        return false;
+        if (grammar.getVariables().isEmpty()) {
+            throw new RuntimeException("during removal of empty variables, grammar went variable-less");
+        }
     }
 
-    public static boolean hasInvalidEmptyRules(Grammar grammar) {
+    public static void removeUnreachableVariables(Grammar grammar) {
+        Set<Variable> reachable = computeClosure(grammar, grammar.getStart());
+        Queue<Variable> removed = new LinkedList<>();
+
+        for (Variable variable : grammar.getVariables()) {
+            if (!reachable.contains(variable)) {
+                removed.add(variable);
+            }
+        }
+
+        while (!removed.isEmpty()) {
+            Variable variable = removed.poll();
+            grammar.getVariables().remove(variable);
+            grammar.getRules().getValue().remove(variable);
+        }
+    }
+
+    public static void removeNonGenerativeVariables(Grammar grammar) {
+        Set<Variable> generative = retrieveGenerativeVariables(grammar);
+        Queue<Variable> removed = new LinkedList<>();
+
+        if (!retrieveGenerativeVariables(grammar).contains(grammar.getStart())) {
+            throw new RuntimeException("during removal non-generative variables, grammar went variable-less");
+        }
+
+        for (Variable variable : grammar.getVariables()) {
+            if (!generative.contains(variable)) {
+                removed.add(variable);
+            }
+        }
+
+        for (Variable variable : removed) {
+            grammar.getRules().getRulesByLeft(variable).clear();
+        }
+    }
+
+    public static boolean hasInvalidLambdaRules(Grammar grammar) {
         for (Variable variable : grammar.getVariables()) {
             for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
                 if (!(variable.equals(grammar.getStart())) && rule.size() == 1 && rule.getFirst() instanceof AlphabetSymbol && rule.getFirst().getValue().isEmpty()) {
@@ -185,10 +166,161 @@ public class GrammarService {
         return false;
     }
 
-    public static boolean hasUnreachableVariables(Grammar grammar) {
+    public static boolean hasUselessVariables(Grammar grammar) {
+        return hasUnreachableVariables(grammar) || hasNonGenerativeVariables(grammar) || hasEmptyVariables(grammar);
+    }
+
+    private static boolean hasEmptyVariables(Grammar grammar) {
+        for (Variable variable : grammar.getVariables()) {
+            if (grammar.getRules().getRulesByLeft(variable).isEmpty()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean hasUnreachableVariables(Grammar grammar) {
         for (Variable variable : grammar.getVariables()) {
             if (!computeClosure(grammar, grammar.getStart()).contains(variable)) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static boolean hasNonGenerativeVariables(Grammar grammar) {
+        Set<Variable> generative = retrieveGenerativeVariables(grammar);
+
+        for (Variable variable : grammar.getVariables()) {
+            if (!generative.contains(variable)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Set<Variable> retrieveGenerativeVariables(Grammar grammar) {
+        Set<Variable> generative = new HashSet<>();
+        boolean hasVariable = false;
+        boolean hasAdded = false;
+
+        // identifies variables with at least one rule who contains no variables
+        for (Variable variable : grammar.getVariables()) {
+            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                hasVariable = false;
+
+                for (GrammarSymbol symbol : rule) {
+                    if (symbol instanceof Variable) {
+                        hasVariable = true;
+                        break;
+                    }
+                }
+
+                if (!hasVariable) {
+                    generative.add(variable);
+                    break;
+                }
+            }
+        }
+
+        do {
+            hasAdded = false;
+
+            for (Variable variable : grammar.getVariables()) {
+                if (!generative.contains(variable)) {
+                    for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                        boolean isRuleGenerative = true;
+
+                        for (GrammarSymbol symbol : rule) {
+                            if (symbol instanceof Variable && !generative.contains(symbol)) {
+                                isRuleGenerative = false;
+                                break;
+                            }
+                        }
+
+                        if (isRuleGenerative) {
+                            hasAdded = true;
+                            generative.add(variable);
+                            break;
+                        }
+                    }
+                }
+            }
+
+        } while (hasAdded);
+
+        return generative;
+    }
+
+    private static void suitLambdaRules(Set<List<GrammarSymbol>> rules, Variable variable) {
+        Set<List<GrammarSymbol>> added = new HashSet<>();
+
+        for (List<GrammarSymbol> rule : rules) {
+            for (GrammarSymbol symbol : rule) {
+                if (symbol.getValue().equals(variable.getValue())) {
+                    List<GrammarSymbol> newRule = new ArrayList<>(rule);
+                    newRule.remove(symbol);
+                    added.add(newRule);
+                }
+            }
+        }
+
+        for (List<GrammarSymbol> rule : added) {
+            if (!rule.isEmpty()) {
+                rules.add(rule);
+            }
+        }
+    }
+
+    // verifies if grammar generates empty word
+    private static boolean isEmptyWorded(Grammar grammar) {
+        Set<Variable> remaining = new HashSet<>(grammar.getVariables());
+        Set<Variable> removed = new HashSet<>();
+
+        // identifies variables with rules such as -> *
+        for (Variable variable : grammar.getVariables()) {
+            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                if (rule.size() == 1 && rule.getFirst() instanceof AlphabetSymbol && rule.getFirst().getValue().isEmpty()) {
+                    if (variable.equals(grammar.getStart())) {
+                        return true;
+                    }
+
+                    remaining.remove(variable);
+                }
+            }
+        }
+
+        while (true) {
+            for (Variable variable : remaining) {
+                for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                    boolean isRuleEmpty = true;
+
+                    for (GrammarSymbol symbol : rule) {
+                        if (symbol instanceof AlphabetSymbol || (symbol instanceof Variable && remaining.contains((Variable) symbol))) {
+                            isRuleEmpty = false;
+                            break;
+                        }
+                    }
+
+                    if (isRuleEmpty) {
+                        removed.add(variable);
+                        break;
+                    }
+                }
+            }
+
+            if (!removed.isEmpty()) {
+                if (removed.contains(grammar.getStart())) {
+                    return true;
+                }
+
+                remaining.removeAll(removed);
+                removed.clear();
+            } else {
+                break;
             }
         }
 

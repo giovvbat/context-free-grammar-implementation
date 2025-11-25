@@ -87,7 +87,7 @@ public class Grammar {
     // verifies some if production rules follow some logic principles
     private void verifyRules(Set<Variable> variables, Set<AlphabetSymbol> alphabet, Rules rules) {
         boolean foundAlphabetSymbol = false;
-        List<GrammarSymbol> alreadyUsedVariables = new ArrayList<>();
+        List<Variable> alreadyUsedVariables = new ArrayList<>();
 
         if (rules == null || rules.getValue() == null) {
             throw new IllegalArgumentException("production rules cannot be null!");
@@ -111,7 +111,7 @@ public class Grammar {
                     if (symbol instanceof AlphabetSymbol) {
                         foundAlphabetSymbol = true;
                     } else if (symbol instanceof Variable) {
-                        alreadyUsedVariables.add(symbol);
+                        alreadyUsedVariables.add((Variable) symbol);
                     }
                 }
             }
@@ -121,8 +121,8 @@ public class Grammar {
             throw new IllegalArgumentException("no production rule in grammar contains non terminal alphabet symbols!");
         }
 
-        for (GrammarSymbol symbol : alreadyUsedVariables) {
-            if (!rules.getValue().containsKey((Variable) symbol)) {
+        for (Variable symbol : alreadyUsedVariables) {
+            if (rules.getRulesByLeft(symbol).isEmpty()) {
                 throw new IllegalArgumentException("production rule for variable " + symbol + " is not present in grammar!");
             }
         }

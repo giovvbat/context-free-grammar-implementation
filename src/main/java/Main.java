@@ -1,6 +1,6 @@
 import model.*;
 import service.GrammarLoader;
-import service.NormalizationService;
+import service.*;
 
 import java.nio.file.Paths;
 
