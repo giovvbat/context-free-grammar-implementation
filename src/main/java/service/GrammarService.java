@@ -9,6 +9,51 @@ import model.Variable;
 import java.util.*;
 
 public class GrammarService {
+    public static void removeLeftRecursion(Grammar grammar) {
+        List<List<GrammarSymbol>> recursive = new ArrayList<>();
+        List<List<GrammarSymbol>> nonRecursive = new ArrayList<>();
+        List<Variable> variables = retrieveLeftRecursiveVariables(grammar);
+
+        for (Variable variable : variables) {
+            recursive.clear();
+            nonRecursive.clear();
+
+            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                if (rule.getFirst().equals(variable)) {
+                    recursive.add(rule);
+                } else {
+                    nonRecursive.add(rule);
+                }
+            }
+
+            if (!recursive.isEmpty()) {
+                Variable current = Variable.nextRepresentationAvailable(grammar.getVariables());
+                grammar.getVariables().add(current);
+                grammar.getRules().getValue().put(current, new ArrayList<>());
+
+                for (List<GrammarSymbol> rule : recursive) {
+                    grammar.getRules().getRulesByLeft(variable).remove(rule);
+                    rule.remove(variable);
+
+                    rule.add(current);
+                    rule.remove(new AlphabetSymbol(""));
+
+                    grammar.getRules().addRule(current, rule);
+                }
+
+                for (List<GrammarSymbol> rule : nonRecursive) {
+                    rule.add(current);
+                    rule.remove(new AlphabetSymbol(""));
+                    grammar.getRules().addRule(variable, rule);
+                }
+
+                List<GrammarSymbol> empty = new ArrayList<>();
+                empty.add(new AlphabetSymbol(""));
+                grammar.getRules().addRule(current, empty);
+            }
+        }
+    }
+
     public static void removeUselessVariables(Grammar grammar) {
         removeUnreachableVariables(grammar);
         removeNonGenerativeVariables(grammar);
@@ -28,15 +73,17 @@ public class GrammarService {
                 }
             }
 
-            grammar.getRules().getRulesByLeft(variable).addAll(added);
+            for (List<GrammarSymbol> rule : added) {
+                grammar.getRules().addRule(variable, rule);
+            }
         }
 
-        for (Map.Entry<Variable, Set<List<GrammarSymbol>>> entry : grammar.getRules().getValue().entrySet()) {
+        for (Map.Entry<Variable, List<List<GrammarSymbol>>> entry : grammar.getRules().getValue().entrySet()) {
             entry.getValue().removeIf(symbols -> symbols.size() == 1 && symbols.getFirst() instanceof Variable);
         }
     }
 
-    public static void removeLambdaRules(Grammar grammar) {
+    public static void removeLambdaRules(Grammar grammar)  {
         Set<Variable> empty = new HashSet<>();
         boolean isEmptyWorded = isEmptyWorded(grammar);
 
@@ -45,6 +92,7 @@ public class GrammarService {
                 if (rule.size() == 1 && rule.getFirst() instanceof AlphabetSymbol && rule.getFirst().getValue().isEmpty()) {
                     empty.add(variable);
                     grammar.getRules().getRulesByLeft(variable).remove(rule);
+
                     break;
                 }
             }
@@ -52,7 +100,7 @@ public class GrammarService {
 
         for (Variable variable : empty) {
             for (Variable current : grammar.getVariables()) {
-                suitLambdaRules(grammar.getRules().getRulesByLeft(current), variable);
+                suitLambdaRules(grammar, current, variable);
             }
         }
 
@@ -60,13 +108,34 @@ public class GrammarService {
             List<GrammarSymbol> emptyRule = new ArrayList<>();
             emptyRule.add(new AlphabetSymbol(""));
 
-            grammar.getRules().getRulesByLeft(grammar.getStart()).add(emptyRule);
+            grammar.getRules().addRule(grammar.getStart(), emptyRule);
+        }
+    }
+
+    private static void suitLambdaRules(Grammar grammar, Variable current, Variable variable) {
+        List<List<GrammarSymbol>> added = new ArrayList<>();
+
+        for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(current)) {
+            for (GrammarSymbol symbol : rule) {
+                if (symbol.getValue().equals(variable.getValue())) {
+                    List<GrammarSymbol> newRule = new ArrayList<>(rule);
+                    newRule.remove(symbol);
+
+                    if (!newRule.isEmpty()) {
+                        added.add(newRule);
+                    }
+                }
+            }
+        }
+
+        for (List<GrammarSymbol> rule : added) {
+            grammar.getRules().addRule(current, rule);
         }
     }
 
     public static void removeEmptyVariables(Grammar grammar) {
         Set<Variable> removed = new HashSet<>();
-        Set<List<GrammarSymbol>> rules = new HashSet<>();
+        List<List<GrammarSymbol>> rules = new ArrayList<>();
 
         while (hasEmptyVariables(grammar)) {
             removed.clear();
@@ -118,8 +187,7 @@ public class GrammarService {
 
         while (!removed.isEmpty()) {
             Variable variable = removed.poll();
-            grammar.getVariables().remove(variable);
-            grammar.getRules().getValue().remove(variable);
+            grammar.getRules().getRulesByLeft(variable).clear();
         }
     }
 
@@ -202,6 +270,18 @@ public class GrammarService {
         return false;
     }
 
+    public static boolean hasLeftRecursion(Grammar grammar) {
+        for (Variable variable : grammar.getVariables()) {
+            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                if (variable.equals(rule.getFirst())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private static Set<Variable> retrieveGenerativeVariables(Grammar grammar) {
         Set<Variable> generative = new HashSet<>();
         boolean hasVariable = false;
@@ -255,24 +335,18 @@ public class GrammarService {
         return generative;
     }
 
-    private static void suitLambdaRules(Set<List<GrammarSymbol>> rules, Variable variable) {
-        Set<List<GrammarSymbol>> added = new HashSet<>();
+    private static List<Variable> retrieveLeftRecursiveVariables(Grammar grammar) {
+        List<Variable> recursive = new ArrayList<>();
 
-        for (List<GrammarSymbol> rule : rules) {
-            for (GrammarSymbol symbol : rule) {
-                if (symbol.getValue().equals(variable.getValue())) {
-                    List<GrammarSymbol> newRule = new ArrayList<>(rule);
-                    newRule.remove(symbol);
-                    added.add(newRule);
+        for (Variable variable : grammar.getVariables()) {
+            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                if (variable.equals(rule.getFirst())) {
+                    recursive.add(variable);
                 }
             }
         }
 
-        for (List<GrammarSymbol> rule : added) {
-            if (!rule.isEmpty()) {
-                rules.add(rule);
-            }
-        }
+        return recursive;
     }
 
     // verifies if grammar generates empty word
@@ -280,7 +354,7 @@ public class GrammarService {
         Set<Variable> remaining = new HashSet<>(grammar.getVariables());
         Set<Variable> removed = new HashSet<>();
 
-        // identifies variables with rules such as -> *
+        // identifies variables with rules such as -> &
         for (Variable variable : grammar.getVariables()) {
             for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
                 if (rule.size() == 1 && rule.getFirst() instanceof AlphabetSymbol && rule.getFirst().getValue().isEmpty()) {

@@ -6,7 +6,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
 
-public class GrammarLoader {
+public class GrammarLoaderService {
     public static Grammar parseFromFile(String path) throws Exception {
         BufferedReader reader = new BufferedReader(new FileReader(path));
         String line;
@@ -14,7 +14,7 @@ public class GrammarLoader {
         Set<Variable> variables = new HashSet<>();
         Set<AlphabetSymbol> alphabet = new HashSet<>();
         Variable start = null;
-        Map<Variable, Set<List<GrammarSymbol>>> rules = new HashMap<>();
+        Rules rules = new Rules(new HashMap<>());
 
         while ((line = reader.readLine()) != null) {
             line = line.trim();
@@ -39,7 +39,7 @@ public class GrammarLoader {
                 }
             }
 
-            else if (line.startsWith("STARTING VARIABLE:")) {
+            else if (line.startsWith("START:")) {
                 String[] parts = line.split(":");
                 start = new Variable(parts[1].trim());
             }
@@ -60,8 +60,8 @@ public class GrammarLoader {
             String left = parts[0].trim();
             Variable key = new Variable(left);
 
-            if (!rules.containsKey(key)) {
-                rules.put(key, new HashSet<>());
+            if (!rules.getValue().containsKey(key)) {
+                rules.getValue().put(key, new ArrayList<>());
             }
 
             String right = parts[1].trim();
@@ -71,13 +71,13 @@ public class GrammarLoader {
                 rule = rule.trim();
                 List<GrammarSymbol> list = new ArrayList<>();
 
-                if (rule.equals("*")) {
+                if (rule.equals("&")) {
                     list.add(new AlphabetSymbol(""));
                 } else {
                     List<String> tokens = tokenize(rule);
 
                     for (String token : tokens) {
-                        if (token.equals("*")) {
+                        if (token.equals("&")) {
                             throw new IllegalArgumentException("lambda production rules cannot contain more than one symbol!");
                         }
 
@@ -91,19 +91,19 @@ public class GrammarLoader {
                     }
                 }
 
-                rules.get(key).add(list);
+                rules.addRule(key, list);
             }
         }
 
         reader.close();
 
         for (Variable variable : variables) {
-            if (!rules.containsKey(variable)) {
-                rules.put(variable, new HashSet<>());
+            if (!rules.getValue().containsKey(variable)) {
+                rules.getValue().put(variable, new ArrayList<>());
             }
         }
 
-        return new Grammar(variables, alphabet, start, new Rules(rules));
+        return new Grammar(variables, alphabet, start, rules);
     }
 
     private static String extractBetweenBraces(String line) {

@@ -9,8 +9,8 @@ import java.util.*;
 @Setter
 public class Grammar {
     private Set<Variable> variables;
-    private Set<AlphabetSymbol> alphabet;
-    private Variable start;
+    private final Set<AlphabetSymbol> alphabet;
+    private final Variable start;
     private Rules rules;
 
     public Grammar(Set<Variable> variables, Set<AlphabetSymbol> alphabet, Variable start, Rules rules) {
@@ -57,17 +57,17 @@ public class Grammar {
     // verifies if all variables and alphabet symbols have (different) representations
     private void verifySymbols(Set<Variable> variables, Set<AlphabetSymbol> alphabet) {
         if (variables == null || variables.isEmpty()) {
-            throw new IllegalArgumentException("variables set cannot be empty!");
+            throw new IllegalArgumentException("ERROR: grammar variables set must not be empty!");
         }
 
         if (alphabet == null || alphabet.isEmpty()) {
-            throw new IllegalArgumentException("alphabet set cannot be empty!");
+            throw new IllegalArgumentException("ERROR: grammar alphabet set must not be empty!");
         }
 
         for (Variable variable : variables) {
             for (AlphabetSymbol symbol : alphabet) {
                 if (variable.getValue().equals(symbol.getValue())) {
-                    throw new IllegalArgumentException("variables and alphabet symbols must all have different representations!");
+                    throw new IllegalArgumentException("ERROR: variables and alphabet symbols must all have different representations!");
                 }
             }
         }
@@ -76,11 +76,11 @@ public class Grammar {
     // verifies if starting variable exists and belongs to grammar variables' set
     private void verifyStart(Set<Variable> variables, Variable startingVariable) {
         if (startingVariable == null) {
-            throw new IllegalArgumentException("starting variable cannot be null!");
+            throw new IllegalArgumentException("ERROR: grammar starting variable must not be null!");
         }
 
         if (!variables.contains(startingVariable)) {
-            throw new IllegalArgumentException("starting variable " + startingVariable + " does not exist in grammar!");
+            throw new IllegalArgumentException("ERROR: starting variable " + startingVariable + " does not exist in grammar!");
         }
     }
 
@@ -90,21 +90,21 @@ public class Grammar {
         List<Variable> alreadyUsedVariables = new ArrayList<>();
 
         if (rules == null || rules.getValue() == null) {
-            throw new IllegalArgumentException("production rules cannot be null!");
+            throw new IllegalArgumentException("ERROR: grammar production rules must not be null!");
         }
 
         if (!rules.getValue().containsKey(start)) {
-            throw new IllegalArgumentException("starting variable must present at least one production rule!");
+            throw new IllegalArgumentException("ERROR: starting variable must present at least one production rule!");
         }
 
-        for (Map.Entry<Variable, Set<List<GrammarSymbol>>> entry : rules.getValue().entrySet()) {
+        for (Map.Entry<Variable, List<List<GrammarSymbol>>> entry : rules.getValue().entrySet()) {
             if (!variables.contains(entry.getKey())) {
-                throw new IllegalArgumentException("variable " + entry.getKey() + " does not exist in grammar!");
+                throw new IllegalArgumentException("ERROR: variable " + entry.getKey() + " does not exist in grammar!");
             }
 
             for (List<GrammarSymbol> symbols : entry.getValue()) {
                 if (symbols.isEmpty()) {
-                    throw new IllegalArgumentException("production rule " + entry.getKey() + " cannot be empty!");
+                    throw new IllegalArgumentException("ERROR: production rule " + entry.getKey() + " must not be empty!");
                 }
 
                 for (GrammarSymbol symbol : symbols) {
@@ -118,18 +118,18 @@ public class Grammar {
         }
 
         if (!foundAlphabetSymbol) {
-            throw new IllegalArgumentException("no production rule in grammar contains non terminal alphabet symbols!");
+            throw new IllegalArgumentException("ERROR: no production rule in grammar contains non terminal alphabet symbols!");
         }
 
         for (Variable symbol : alreadyUsedVariables) {
             if (rules.getRulesByLeft(symbol).isEmpty()) {
-                throw new IllegalArgumentException("production rule for variable " + symbol + " is not present in grammar!");
+                throw new IllegalArgumentException("ERROR: production rule for variable " + symbol + " is not present in grammar!");
             }
         }
 
         for (Variable variable : variables) {
             if (!rules.getValue().containsKey(variable)) {
-                rules.getValue().put(variable, new HashSet<>());
+                rules.getValue().put(variable, new ArrayList<>());
             }
         }
     }

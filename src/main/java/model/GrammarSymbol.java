@@ -6,11 +6,11 @@ import lombok.*;
 @Setter
 @EqualsAndHashCode
 public abstract class GrammarSymbol {
-    private String value;
+    private final String value;
 
     public GrammarSymbol(String value) {
-        if (value.equals("*")) {
-            throw new IllegalArgumentException("grammar symbol values cannot be stored as *");
+        if (value.equals("&")) {
+            throw new IllegalArgumentException("grammar symbol values cannot be stored as &");
         }
 
         this.value = value;
@@ -19,7 +19,7 @@ public abstract class GrammarSymbol {
     @Override
     public String toString() {
         if (value.isEmpty()) {
-            return "*";
+            return "&";
         }
 
         return value;

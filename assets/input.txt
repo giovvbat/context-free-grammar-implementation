@@ -1,7 +1,6 @@
-VARIABLES: { A B S }
+VARIABLES: { A B S C D E F }
 ALPHABET: { a b c }
-STARTING VARIABLE: S
+START: S
 PRODUCTION RULES:
-B -> bB | A
-A -> a | c
-S -> abccb | A | AB
+A -> &
+S -> A | aA | Sc

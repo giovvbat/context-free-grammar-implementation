@@ -5,7 +5,10 @@ import model.Grammar;
 public class NormalizationService {
     public static void normalizeChomsky(Grammar grammar) {
         while (true) {
-            if (GrammarService.hasInvalidLambdaRules(grammar)) {
+            if (GrammarService.hasLeftRecursion(grammar)) {
+                GrammarService.removeLeftRecursion(grammar);
+            }
+            else if (GrammarService.hasInvalidLambdaRules(grammar)) {
                 GrammarService.removeLambdaRules(grammar);
             } else if (GrammarService.hasUnitaryRules(grammar)) {
                 GrammarService.removeUnitaryRules(grammar);
