@@ -15,10 +15,9 @@ public class AlphabetSymbol extends GrammarSymbol {
             return value;
         }
 
-        for (char character = 'a'; character <= 'z'; character++) {
-            String letter = String.valueOf(character);
-
-            if (letter.equals(value)) {
+        if(value.length() == 1){
+            char c = value.charAt(0);
+            if(c>='a' && c<='z' || c>='0' && c<='9'){
                 return value;
             }
         }

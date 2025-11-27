@@ -19,32 +19,39 @@ public class GrammarLoaderService {
         while ((line = reader.readLine()) != null) {
             line = line.trim();
 
-            if (line.startsWith("VARIABLES:")) {
+            if (line.toUpperCase().startsWith("VARIABLES:") || line.toUpperCase().startsWith("VARIAVEIS")) {
+
                 String inside = extractBetweenBraces(line);
 
-                for (String value : inside.split(" ")) {
+                String[] parts = inside.split("[,\\s]+");
+
+                for (String value : parts) {
                     if (!value.isEmpty()) {
                         variables.add(new Variable(value));
                     }
                 }
             }
 
-            else if (line.startsWith("ALPHABET:")) {
+            else if (line.toUpperCase().startsWith("ALPHABET:") || line.toUpperCase().startsWith("ALFABETO")) {
                 String inside = extractBetweenBraces(line);
 
-                for (String value : inside.split(" ")) {
+                String[] parts = inside.split("[,\\s]+");
+
+                for (String value : parts) {
                     if (!value.isEmpty()) {
                         alphabet.add(new AlphabetSymbol(value));
                     }
                 }
             }
 
-            else if (line.startsWith("START:")) {
-                String[] parts = line.split(":");
-                start = new Variable(parts[1].trim());
+            else if (line.toUpperCase().startsWith("START:") || line.toUpperCase().startsWith("INICIAL")) {
+                String[] parts = line.split("[:=]");
+                if (parts.length >1){
+                    start = new Variable(parts[1].trim());
+                }
             }
 
-            else if (line.startsWith("PRODUCTION RULES:")) {
+            else if (line.toUpperCase().startsWith("PRODUCTION RULES:") || line.toUpperCase().startsWith("REGRAS")) {
                 break;
             }
         }
@@ -57,6 +64,10 @@ public class GrammarLoaderService {
             }
 
             String[] parts = line.split("->");
+            if (parts.length < 2){
+                throw new IllegalArgumentException("invalid production rule: " + line);
+            }
+
             String left = parts[0].trim();
             Variable key = new Variable(left);
 
