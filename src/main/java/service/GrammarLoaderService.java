@@ -65,6 +65,9 @@ public class GrammarLoaderService {
             if (!line.contains("->")) continue;
 
             String[] parts = line.split("->");
+            if (parts.length < 2){
+                throw new IllegalArgumentException("invalid production rule: " + line);
+            }
             String left = parts[0].trim();
             Variable key = new Variable(left);
 
@@ -80,7 +83,7 @@ public class GrammarLoaderService {
                 rules.getValue().put(key, new ArrayList<>());
             }
 
-            String right = parts.length > 1 ? parts[1].trim() : "";
+            String right = parts[1].trim();
 
             String[] productions = right.split("\\|");
 
@@ -97,6 +100,9 @@ public class GrammarLoaderService {
                     List<String> tokens = tokenize(rule);
 
                     for (String token : tokens) {
+                        if (token.equals("&")) {
+                            throw new IllegalArgumentException("lambda production rules cannot contain more than one symbol!");
+                        }
                         boolean isVar = isVariable(token, variables);
                         boolean isAlph = isAlphabetSymbol(token, alphabet);
 
@@ -116,7 +122,7 @@ public class GrammarLoaderService {
                                 list.add(s);
                             }
                         } else {
-                            throw new IllegalArgumentException("Símbolo desconhecido: " + token);
+                            throw new IllegalArgumentException("grammar symbol " + token + " was not defined in neither alphabet or variable set!");
                         }
                     }
                 }
@@ -124,7 +130,7 @@ public class GrammarLoaderService {
             }
         }
 
-        if (start == null) throw new IllegalArgumentException("Não foi possível identificar a variável inicial.");
+        if (start == null) throw new IllegalArgumentException("The initial variable could not be identified.");
 
 
         for (Variable variable : variables) {
