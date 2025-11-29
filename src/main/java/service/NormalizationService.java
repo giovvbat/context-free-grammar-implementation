@@ -7,8 +7,7 @@ public class NormalizationService {
         while (true) {
             if (GrammarService.hasLeftRecursion(grammar)) {
                 GrammarService.removeLeftRecursion(grammar);
-            }
-            else if (GrammarService.hasInvalidLambdaRules(grammar)) {
+            } else if (GrammarService.hasInvalidLambdaRules(grammar)) {
                 GrammarService.removeLambdaRules(grammar);
             } else if (GrammarService.hasUnitaryRules(grammar)) {
                 GrammarService.removeUnitaryRules(grammar);
@@ -17,6 +16,12 @@ public class NormalizationService {
             } else {
                 break;
             }
+        }
+    }
+
+    public static void normalizeGreibach(Grammar grammar) {
+        while (true) {
+
         }
     }
 }

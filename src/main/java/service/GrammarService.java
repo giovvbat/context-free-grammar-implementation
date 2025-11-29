@@ -6,6 +6,7 @@ import model.Grammar;
 import model.GrammarSymbol;
 import model.Variable;
 
+import java.awt.List;
 import java.util.*;
 
 public class GrammarService {
@@ -439,5 +440,37 @@ public class GrammarService {
         }
 
         return closure;
+    }
+
+    private static void renameVariables(Grammar grammar) {
+        int counter = 2;
+        List<Variable> variables = new ArrayList<>(grammar.getVariables());
+
+        variables.sort(Comparator.comparing(Variable::getValue));
+        for (Variable variable : variables) {
+            if ("S".equals(variable.getValue())) {
+                variable.setValue("V1");
+            } else {
+                variable.setValue("V" + counter);
+                counter++;
+            }
+        }
+    }
+
+    private static int getVariableIndex(Variable variable) {
+        String variableValue = variable.getValue();
+        return Integer.parseInt(variableValue);
+    }
+
+    private static bool violatesOrder(Variable left, List<GrammarSymbol> rule) {
+        GrammarSymbol first = rule.getFirst();
+        if (!(first instanceof Variable variable)) {
+            return false;
+        }
+
+        int i = getVariableIndex(left);
+        int j = getVariableIndex(variable);
+
+        return i >= j;
     }
 }
