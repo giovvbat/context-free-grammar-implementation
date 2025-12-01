@@ -15,9 +15,10 @@ public class AlphabetSymbol extends GrammarSymbol {
             return value;
         }
 
-        if(value.length() == 1){
-            char c = value.charAt(0);
-            if(c>='a' && c<='z' || c>='0' && c<='9'){
+        if (value.length() == 1) {
+            char character = value.charAt(0);
+
+            if (character >= 'a' && character <= 'z' || character >= '0' && character <= '9') {
                 return value;
             }
         }

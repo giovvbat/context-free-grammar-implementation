@@ -140,14 +140,13 @@ public class GrammarLoaderService {
         return new Grammar(variables, alphabet, start, rules);
     }
 
-
-
     private static String extractBetweenBraces(String line) {
         int start = line.indexOf("{");
         int end = line.indexOf("}");
 
         return line.substring(start + 1, end).trim();
-        }
+    }
+
     private static String cleanLine(String line) {
         return line.replaceAll("\\[.*?]", "").trim();
     }
@@ -161,7 +160,6 @@ public class GrammarLoaderService {
                 matchesHeader(line, "ALPHABET") || matchesHeader(line, "START") ||
                 matchesHeader(line, "INICIAL");
     }
-
 
     private static boolean isVariable(String token, Set<Variable> variables) {
         return variables.stream().anyMatch(v -> v.getValue().equals(token));
