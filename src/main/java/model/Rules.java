@@ -42,8 +42,13 @@ public class Rules {
                 if (rule.size() == 1 && rule.getFirst().toString().isEmpty()) {
                     return "& ";
                 }
-
-                return rule.stream().map(Object::toString).collect(Collectors.joining(""));
+                return rule.stream().map(symbol -> {
+                    String symbolStr = symbol.toString();
+                    if (symbol instanceof Variable && symbolStr.matches(".*\\d.*")) {
+                        return "(" + symbolStr + ")";
+                    }
+                    return symbolStr;
+                } ).collect(Collectors.joining(""));
             }).collect(Collectors.joining(" | "));
 
             sb.append(rightSide).append("\n");

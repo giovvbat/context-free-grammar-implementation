@@ -1,0 +1,10 @@
+VARIABLES: { A B C D E F G H I J K L M N O P Q R S T U V W X Y Z }
+ALPHABET: { 0 }
+START: S
+PRODUCTION RULES:
+S -> A B C D E
+A -> 0
+B -> 0
+C -> 0
+D -> 0
+E -> 0

@@ -1,0 +1,9 @@
+VARIABLES: { S A B C D }
+ALPHABET: { a b c 1 d }
+START: S
+PRODUCTION RULES:
+S -> aBC | A
+A -> A1 | &
+B -> C | b
+C -> cC | c
+D -> dd

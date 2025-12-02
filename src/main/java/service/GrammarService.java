@@ -6,7 +6,6 @@ import model.Grammar;
 import model.GrammarSymbol;
 import model.Variable;
 
-import java.awt.List;
 import java.util.*;
 
 public class GrammarService {
@@ -441,18 +440,70 @@ public class GrammarService {
 
         return closure;
     }
+    public static void convertTerminalsToVariables(Grammar grammar){
+        Map<String, Variable> terminalToVariable = new HashMap<>();
 
-    private static void renameVariables(Grammar grammar) {
-        int counter = 2;
         List<Variable> variables = new ArrayList<>(grammar.getVariables());
 
-        variables.sort(Comparator.comparing(Variable::getValue));
         for (Variable variable : variables) {
-            if ("S".equals(variable.getValue())) {
-                variable.setValue("V1");
-            } else {
-                variable.setValue("V" + counter);
-                counter++;
+            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
+                if(rule.size()>=2){
+                    for(int i = 0; i<rule.size();i++){
+                        GrammarSymbol symbol = rule.get(i);
+
+                        if(symbol instanceof AlphabetSymbol){
+                            String val = symbol.getValue();
+                            Variable replacement;
+
+                            if (terminalToVariable.containsKey(val)) {
+                                replacement = terminalToVariable.get(val);
+                            } else{
+                                replacement = Variable.nextRepresentationAvailable(grammar.getVariables());
+                                grammar.getVariables().add(replacement);
+                                grammar.getRules().getValue().put(replacement, new ArrayList<>());
+
+                                List<GrammarSymbol> terminalRule = new ArrayList<>();
+                                terminalRule.add(symbol);
+                                grammar.getRules().addRule(replacement, terminalRule);
+                                terminalToVariable.put(val, replacement);
+
+                            }
+                            rule.set(i, replacement);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static void breakLongProductions(Grammar grammar){
+        boolean hasLongRules = true;
+
+        while (hasLongRules) {
+            hasLongRules = false;
+            List<Variable> variables = new ArrayList<>(grammar.getVariables());
+
+            for(Variable variable : variables){
+                List<List<GrammarSymbol>> rules = grammar.getRules().getRulesByLeft(variable);
+
+                for (List<GrammarSymbol> rule : rules) {
+                    if (rule.size() > 2) {
+                        hasLongRules = true;
+                        GrammarSymbol first = rule.getFirst();
+
+                        List<GrammarSymbol> rest = new ArrayList<>(rule.subList(1, rule.size()));
+
+                        Variable newVar = Variable.nextRepresentationAvailable(grammar.getVariables());
+                        grammar.getVariables().add(newVar);
+                        grammar.getRules().getValue().put(newVar, new ArrayList<>());
+                        grammar.getRules().addRule(newVar, rest);
+
+                        rule.clear();
+                        rule.add(first);
+                        rule.add(newVar);
+
+                    }
+                }
             }
         }
     }
@@ -462,7 +513,7 @@ public class GrammarService {
         return Integer.parseInt(variableValue);
     }
 
-    private static bool violatesOrder(Variable left, List<GrammarSymbol> rule) {
+    private static boolean violatesOrder(Variable left, List<GrammarSymbol> rule) {
         GrammarSymbol first = rule.getFirst();
         if (!(first instanceof Variable variable)) {
             return false;

@@ -1,0 +1,6 @@
+VARIABLES: { S A }
+ALPHABET: { 0 1 }
+START: S
+PRODUCTION RULES:
+S -> 0A | 01
+A -> 1

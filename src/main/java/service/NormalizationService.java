@@ -4,7 +4,7 @@ import model.Grammar;
 
 public class NormalizationService {
     public static void normalizeChomsky(Grammar grammar) {
-        while (true) {
+         while (true) {
             if (GrammarService.hasLeftRecursion(grammar)) {
                 GrammarService.removeLeftRecursion(grammar);
             } else if (GrammarService.hasInvalidLambdaRules(grammar)) {
@@ -17,11 +17,11 @@ public class NormalizationService {
                 break;
             }
         }
+
+        GrammarService.convertTerminalsToVariables(grammar);
+        GrammarService.breakLongProductions(grammar);
+
     }
 
-    public static void normalizeGreibach(Grammar grammar) {
-        while (true) {
 
-        }
-    }
 }
