@@ -43,7 +43,7 @@ public class Grammar {
         }
 
         sb.append(" }\n").append("STARTING VARIABLE: ").append(start).append("\n");
-        sb.append("PRODUCTION RULES:\n").append(rules).append("\n");
+        sb.append("PRODUCTION RULES:\n").append(rules.getFormattedRules(start)).append("\n");
 
         return sb.toString();
     }
