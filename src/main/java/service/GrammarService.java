@@ -69,6 +69,7 @@ public class GrammarService {
         }
     }
     private static void removeDirectLeftRecursion(Grammar grammar, Variable variable) {
+
         List<List<GrammarSymbol>> recursive = new ArrayList<>();
         List<List<GrammarSymbol>> nonRecursive = new ArrayList<>();
 
@@ -77,8 +78,10 @@ public class GrammarService {
         if(rules == null) {
             return;
         }
+        rules.removeIf(rule -> rule.size() == 1 && rule.getFirst().equals(variable));
 
         for(List<GrammarSymbol> rule : rules) {
+
             if(!rule.isEmpty() && rule.getFirst().equals(variable)) {
                 recursive.add(rule);
             }else{
@@ -92,27 +95,33 @@ public class GrammarService {
             grammar.getRules().getValue().put(current, new ArrayList<>());
 
 
-            for(List<GrammarSymbol> rule : recursive) {
-                grammar.getRules().getRulesByLeft(variable).remove(rule);
+            List<List<GrammarSymbol>> newRulesForVariable = new ArrayList<>();
 
-                rule.remove(variable);
-                rule.add(current);
-                rule.remove(new AlphabetSymbol(""));
+            for(List<GrammarSymbol> rule : nonRecursive) {
+                List<GrammarSymbol> newRule = new ArrayList<>(rule);
+
+                if(newRule.size() == 1 && newRule.getFirst() instanceof AlphabetSymbol && newRule.getFirst().getValue().isEmpty()) {
+                    newRule.clear();
+                }
+                newRule.add(current);
+                newRulesForVariable.add(newRule);
+
+
+                newRulesForVariable.add(new ArrayList<>(rule));
+            }
+            grammar.getRules().getValue().put(variable, newRulesForVariable);
+
+            for(List<GrammarSymbol> rule : recursive) {
+                List<GrammarSymbol> newRule = new ArrayList<>(rule.subList(1, rule.size()));
+                newRule.removeFirst();
+
+                List<GrammarSymbol> recursiveStep  = new ArrayList<>(newRule);
+
+                recursiveStep.add(current);
+                grammar.getRules().addRule(current, recursiveStep);
 
                 grammar.getRules().addRule(current, rule);
             }
-
-            for(List<GrammarSymbol> rule : nonRecursive) {
-                rule.add(current);
-                rule.remove(new AlphabetSymbol(""));
-
-                grammar.getRules().addRule(variable, rule);
-            }
-
-
-            List<GrammarSymbol> empty = new ArrayList<>();
-            empty.add(new AlphabetSymbol(""));
-            grammar.getRules().addRule(current, empty);
         }
 
     }
