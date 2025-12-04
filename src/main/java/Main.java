@@ -6,7 +6,7 @@ import service.*;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        String inputFileName   = "assets/chomsky.txt";
+        String inputFileName   = "assets/indirect.txt";
 
         System.out.println("Loading grammar from file: " + inputFileName);
         Grammar grammar = GrammarLoaderService.parseFromFile(inputFileName);
