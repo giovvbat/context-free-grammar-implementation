@@ -13,7 +13,7 @@ public class NormalizationService {
     public static void normalizeChomsky(Grammar grammar, String originalFilePath) {
         stepCounter = 1;
 
-        String outputFileName = generateOutputFilePath(originalFilePath);
+        String outputFileName = generateOutputFilePath(originalFilePath, "_chomsky");
 
         initializeLogFile(outputFileName);
         logCustomMessage(outputFileName, "INITIAL GRAMMAR", grammar.toString());
@@ -41,11 +41,43 @@ public class NormalizationService {
 
     }
 
+    public static void normalizeGreibach(Grammar grammar, String originalFilePath) {
+        stepCounter = 1;
+
+        String outputFileName = generateOutputFilePath(originalFilePath, "_greibach");
+
+        initializeLogFile(outputFileName);
+        logCustomMessage(outputFileName, "INITIAL GRAMMAR", grammar.toString());
+
+        while (true) {
+            if (GrammarService.hasLeftRecursion(grammar)) {
+                executeAndLogAction(grammar, GrammarService::removeLeftRecursion, "Removing Left Recursion", outputFileName);
+            } else if (GrammarService.hasInvalidLambdaRules(grammar)) {
+                executeAndLogAction(grammar, GrammarService::removeLambdaRules, "Removing Lambda Rules", outputFileName);
+            } else if (GrammarService.hasUnitaryRules(grammar)) {
+                executeAndLogAction(grammar, GrammarService::removeUnitaryRules, "Removing Unitary Rules", outputFileName);
+            } else if (GrammarService.hasUselessVariables(grammar)) {
+                executeAndLogAction(grammar, GrammarService::removeUselessVariables, "Removing Useless Variables", outputFileName);
+            } else {
+                break;
+            }
+        }
+
+        executeAndLogAction(grammar, GrammarService::convertTerminalsToVariables, "Converting Terminals to Variables", outputFileName);
+
+        executeAndLogAction(grammar, GrammarService::convertToGreibach, "Converting to Greibach Normal Form", outputFileName);
+
+        logCustomMessage(outputFileName, "FINAL GRAMMAR IN GREIBACH NORMAL FORM", grammar.toString());
+
+        System.out.println("Normalization complete. Detailed steps logged in: " + outputFileName);
+
+    }
+
     @FunctionalInterface
     interface GrammarAction {
         void apply(Grammar grammar);
     }
-    private static String generateOutputFilePath(String originalFilePath) {
+    private static String generateOutputFilePath(String originalFilePath, String suffix) {
         Path file = Paths.get(originalFilePath);
         String fileName = file.getFileName().toString();
 
@@ -56,7 +88,7 @@ public class NormalizationService {
 
         Path parentDir = file.getParent();
         if (parentDir != null) {
-            return parentDir.resolve("normalization_" + fileName + "_output.txt").toString();
+            return parentDir.resolve("normalization_" + fileName + "_output" + suffix + ".txt").toString();
         } else {
             return "normalization_" + fileName + "_output.txt";
             }

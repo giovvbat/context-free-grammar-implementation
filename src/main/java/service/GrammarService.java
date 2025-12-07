@@ -437,20 +437,6 @@ public class GrammarService {
         return generative;
     }
 
-    private static List<Variable> retrieveLeftRecursiveVariables(Grammar grammar) {
-        List<Variable> recursive = new ArrayList<>();
-
-        for (Variable variable : grammar.getVariables()) {
-            for (List<GrammarSymbol> rule : grammar.getRules().getRulesByLeft(variable)) {
-                if (variable.equals(rule.getFirst())) {
-                    recursive.add(variable);
-                }
-            }
-        }
-
-        return recursive;
-    }
-
     // verifies if grammar generates empty word
     private static boolean isEmptyWorded(Grammar grammar) {
         Set<Variable> remaining = new HashSet<>(grammar.getVariables());
@@ -628,21 +614,122 @@ public class GrammarService {
             }
         }
     }
+    public static void convertToGreibach(Grammar grammar){
+        renameVariableSequential(grammar);
+        removeLeftRecursionGreibach(grammar);
+        backSubstituteGreibach(grammar);
+    }
 
+    public static void renameVariableSequential(Grammar grammar){
+        List<Variable> sortedVariables = new ArrayList<>(grammar.getVariables());
+        sortedVariables.sort((v1, v2) ->{
+            if(v1.equals(grammar.getStart())) {
+                return -1;
+            }
+            if(v2.equals(grammar.getStart())) {
+                return 1;
+            }
+            return v1.getValue().compareTo(v2.getValue());
+        });
+
+        Map<Variable, Variable> mapping = new HashMap<>();
+
+        int counter = 0;
+
+        for (Variable variable : sortedVariables) {
+            if(variable.equals(grammar.getStart())) {
+                mapping.put(variable, variable);
+            }else{
+                mapping.put(variable, new Variable("V"+counter));
+            }
+            counter++;
+        }
+        Set<Variable> newVariables = new HashSet<>(mapping.values());
+        grammar.setVariables(newVariables);
+
+        Map<Variable, List<List<GrammarSymbol>>> newRulesMap = new HashMap<>();
+
+        for(Map.Entry<Variable, List<List<GrammarSymbol>>> entry : grammar.getRules().getValue().entrySet()){
+            Variable oldKey = entry.getKey();
+            Variable newKey = mapping.get(oldKey);
+
+            List<List<GrammarSymbol>> newRuleList = new ArrayList<>();
+            for (List<GrammarSymbol> rule : entry.getValue()) {
+                List<GrammarSymbol> newRule = new ArrayList<>();
+                for (GrammarSymbol symbol : rule) {
+                    if(symbol instanceof Variable){
+                        newRule.add(mapping.get(symbol));
+                    } else{
+                        newRule.add(symbol);
+                    }
+                }
+                newRuleList.add(newRule);
+            }
+            newRulesMap.put(newKey, newRuleList);
+        }
+        grammar.getRules().setValue(newRulesMap);
+    }
+
+    private static void removeLeftRecursionGreibach(Grammar grammar){
+        List<Variable> orderedVariables = new ArrayList<>(grammar.getVariables());
+
+        orderedVariables.sort(Comparator.comparingInt(v -> getVariableIndexGreibach(grammar, v)));
+
+        // Paull's algorithm to remove left recursion
+        for(int i = 0; i< orderedVariables.size(); i++){
+            Variable Ai = orderedVariables.get(i);
+            for(int j = 0; j<i; j++){
+                Variable Aj = orderedVariables.get(j);
+                replaceProductions(grammar, Ai, Aj);
+            }
+            removeDirectLeftRecursion(grammar, Ai);
+        }
+    }
+
+    private static void backSubstituteGreibach(Grammar grammar) {
+        List<Variable> orderedVariables = new ArrayList<>(grammar.getVariables());
+
+        orderedVariables.sort(Comparator.comparingInt(v -> getVariableIndexGreibach(grammar, v)));
+
+        for (int i = orderedVariables.size() - 1; i >= 0; i--) {
+            Variable Ai = orderedVariables.get(i);
+
+            boolean changed = true;
+            while (changed) {
+                changed = false;
+                List<List<GrammarSymbol>> currentRules = new ArrayList<>(grammar.getRules().getRulesByLeft(Ai));
+
+                for (List<GrammarSymbol> rule : currentRules) {
+                    // Check if the rule starts with a Variable (A -> B...)
+                    if (!rule.isEmpty() && rule.getFirst() instanceof Variable) {
+                        Variable startSymbol = (Variable) rule.getFirst();
+
+                        // Substitute it to push terminals to the front
+                        replaceProductions(grammar, Ai, startSymbol);
+                        changed = true;
+
+                        // Break to refresh the rules list
+                        break;
+                    }
+                }
+            }
+        }
+    }
     private static int getVariableIndex(Variable variable) {
         String variableValue = variable.getValue();
         return Integer.parseInt(variableValue);
+
     }
 
-    private static boolean violatesOrder(Variable left, List<GrammarSymbol> rule) {
-        GrammarSymbol first = rule.getFirst();
-        if (!(first instanceof Variable variable)) {
-            return false;
+    private static int getVariableIndexGreibach(Grammar grammar, Variable variable) {
+        if(variable.equals(grammar.getStart())) {
+            return 0;
         }
-
-        int i = getVariableIndex(left);
-        int j = getVariableIndex(variable);
-
-        return i >= j;
+        try{
+            return Integer.parseInt(variable.getValue().substring(1));
+        }catch(NumberFormatException e){
+            return Integer.MAX_VALUE;
+        }
     }
+
 }
