@@ -48,12 +48,12 @@ mvn exec:java -Dexec.mainClass="Main"
 Create a text file with the following format:
 
 ```
-VARIABLES: { A B S C D }
+VARIABLES: { A B S C }
 ALPHABET: { a b c }
 START: S
 PRODUCTION RULES:
 S -> aBC | A
-A -> A1 | &
+A -> aB | &
 B -> C | b
 C -> cC | c
 ```
@@ -101,9 +101,9 @@ These files contain:
 
 The `assets/` directory contains several example grammar files:
 - `input.txt` - Basic grammar example
-- `chomsky.txt` - Grammar for Chomsky normalization
-- `complete.txt` - Complete grammar example
-- `reduced.txt` - Reduced grammar example
+- `chomsky.txt` - Grammar example for CNF conversion
+- `complete.txt` - Complete grammar example with multiple production rules
+- `reduced.txt` - Simplified grammar example
 
 ## Project Structure
 
